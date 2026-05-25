@@ -8,8 +8,8 @@ Usa este modo solamente con sitios tuyos o con autorización para reutilizar con
 ## Variables de entorno en Render
 
 ```env
-WORDPRESS_URL=https://enriquevirgen.com
-WORDPRESS_USER=qwerty123321
+WORDPRESS_URL
+WORDPRESS_USER=
 WORDPRESS_APP_PASSWORD=TU_APPLICATION_PASSWORD
 WORDPRESS_STATUS=publish
 RUN_ON_START=true
