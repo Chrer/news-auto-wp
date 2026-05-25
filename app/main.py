@@ -10,7 +10,7 @@ from .config import (
     MAX_ARTICLE_AGE_HOURS, DATE_FILTER_ENABLED, SMART_CLEAN_CONTENT, INCLUDE_SOURCE_LINK
 )
 
-app = FastAPI(title="News Auto WordPress Full", version="3.0.0")
+app = FastAPI(title="News Auto WordPress Full", version="10.0.0")
 
 
 @app.on_event("startup")
@@ -36,6 +36,11 @@ def home():
         "smart_clean_content": SMART_CLEAN_CONTENT,
         "include_source_link": INCLUDE_SOURCE_LINK,
         "tags_to_wordpress": True,
+        "duplicate_protection": "url+title+slug+wordpress",
+        "source_strategy": "round_robin",
+        "html_entities_decoded": True,
+        "utf8_global_cleaning": True,
+        "mojibake_repair": True,
         "message": "Automatizador de noticias activo",
     }
     return data

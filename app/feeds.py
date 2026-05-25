@@ -7,12 +7,13 @@ import requests
 from bs4 import BeautifulSoup
 import feedparser
 from .config import USER_AGENT
+from .text_utils import decode_entities, canonical_url, clean_tag_name
 
 COMMON_FEED_PATHS = ["/feed/", "/rss/", "/rss.xml", "/feed.xml", "/atom.xml"]
 
 
 def normalize_url(url: str) -> str:
-    return (url or "").strip()
+    return canonical_url(url or "")
 
 
 def discover_feed(home_url: str) -> str | None:
@@ -20,6 +21,7 @@ def discover_feed(home_url: str) -> str | None:
     try:
         resp = requests.get(home_url, headers=headers, timeout=15)
         resp.raise_for_status()
+        resp.encoding = resp.apparent_encoding or resp.encoding
         soup = BeautifulSoup(resp.text, "html.parser")
         for link in soup.find_all("link"):
             link_type = (link.get("type") or "").lower()
@@ -46,7 +48,7 @@ def html_to_text(value: str) -> str:
         return ""
     soup = BeautifulSoup(value, "html.parser")
     text = soup.get_text(" ", strip=True)
-    return re.sub(r"\s+", " ", text).strip()
+    return decode_entities(text)
 
 
 def get_entry_image(entry) -> str | None:
@@ -80,7 +82,7 @@ def get_entry_tags(entry) -> list[str]:
     clean = []
     seen = set()
     for tag in tags:
-        tag = re.sub(r"^[#]+", "", tag).strip()[:50]
+        tag = clean_tag_name(tag)
         key = tag.lower()
         if tag and len(tag) >= 3 and key not in seen:
             seen.add(key)

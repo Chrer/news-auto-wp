@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+from .text_utils import clean_text_global
 
 REPLACEMENTS = [
     (r"\bseñaló\b", "indicó"),
@@ -44,7 +45,7 @@ def _replace_outside_quotes(text: str) -> str:
 
 
 def paraphrase_paragraph(paragraph: str, index: int = 0) -> str:
-    p = paragraph.strip()
+    p = clean_text_global(paragraph)
     if not p:
         return ""
     p = _replace_outside_quotes(p)
@@ -54,4 +55,4 @@ def paraphrase_paragraph(paragraph: str, index: int = 0) -> str:
 
 
 def paraphrase_text(paragraphs: list[str]) -> list[str]:
-    return [paraphrase_paragraph(p, i) for i, p in enumerate(paragraphs) if p.strip()]
+    return [clean_text_global(paraphrase_paragraph(p, i)) for i, p in enumerate(paragraphs) if clean_text_global(p)]

@@ -4,8 +4,8 @@ from urllib.parse import urlparse
 import requests
 import hashlib
 from requests.auth import HTTPBasicAuth
-from slugify import slugify
 from .config import WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_APP_PASSWORD, USER_AGENT, REQUEST_TIMEOUT
+from .text_utils import decode_entities, safe_slug, title_key, clean_tag_name, clean_text_global
 
 
 class WordPressClient:
@@ -32,7 +32,7 @@ class WordPressClient:
     def get_or_create_category_id(self, name: str) -> int | None:
         if not name:
             return None
-        slug = slugify(name)
+        slug = safe_slug(name)
         found = self._request("GET", "categories", params={"slug": slug, "per_page": 1})
         if found:
             return found[0]["id"]
@@ -49,14 +49,14 @@ class WordPressClient:
             return ids
         seen: set[str] = set()
         for name in names[:12]:
-            name = (name or "").strip()[:50]
+            name = clean_tag_name(name)
             if not name:
                 continue
             key = name.lower()
             if key in seen:
                 continue
             seen.add(key)
-            slug = slugify(name)[:60]
+            slug = safe_slug(name)[:60]
             try:
                 found = self._request("GET", "tags", params={"slug": slug, "per_page": 1})
                 if found:
@@ -168,19 +168,43 @@ class WordPressClient:
         media_id = media.get("id")
         if media_id and alt_text:
             try:
-                self._request("POST", f"media/{media_id}", json={"alt_text": alt_text[:250]})
+                self._request("POST", f"media/{media_id}", json={"alt_text": clean_text_global(alt_text)[:250]})
             except Exception:
                 pass
         return media_id
 
+    def post_exists(self, title: str) -> bool:
+        """Evita duplicados también revisando WordPress por slug y búsqueda de título."""
+        slug = safe_slug(title)
+        try:
+            found = self._request("GET", "posts", params={"slug": slug, "status": "publish,draft,pending,private,future", "per_page": 1})
+            if found:
+                return True
+        except Exception:
+            pass
+
+        try:
+            found = self._request("GET", "posts", params={"search": decode_entities(title), "status": "publish,draft,pending,private,future", "per_page": 5})
+            wanted = title_key(title)
+            for post in found or []:
+                rendered = (post.get("title") or {}).get("rendered", "")
+                if title_key(rendered) == wanted:
+                    return True
+        except Exception:
+            pass
+        return False
+
     def create_post(self, title: str, content: str, category_name: str, status: str = "publish", excerpt: str | None = None, featured_media: int | None = None, tags: list[str] | None = None):
+        title = clean_text_global(title)
+        excerpt = clean_text_global(excerpt or "")
+        content = clean_text_global(content, single_line=False)
         category_id = self.get_or_create_category_id(category_name)
         tag_ids = self.get_or_create_tag_ids(tags)
         payload = {
             "title": title,
             "content": content,
             "status": status,
-            "slug": slugify(title)[:70],
+            "slug": safe_slug(title),
         }
         if category_id:
             payload["categories"] = [category_id]

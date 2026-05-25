@@ -1,17 +1,27 @@
-# News Auto WordPress V7
+# News Auto WordPress V9 Estable
 
-Sistema automático para fuentes propias/autorizadas.
+Versión corregida para el automatizador de noticias de `enriquevirgen.com`.
 
-## Cambios V7
+## Cambios principales
 
-- Elimina basura del artículo antes de publicar: publicidad, menús, redes sociales, newsletter, relacionados, botones, comentarios y bloques repetidos.
-- Ya no agrega el bloque visible de “Fuente original” dentro de la nota.
-- Extrae etiquetas del feed o del HTML y las crea/asigna como **etiquetas de WordPress**.
-- Las etiquetas no se agregan como texto dentro de la publicación.
-- Mantiene imagen obligatoria y corrección de subida de imagen 406.
-- Sin filtro de fecha y sin fuentes de El País.
+- Corrige entidades HTML como `&ntilde;` para publicar `ñ`, acentos y signos correctamente.
+- No agrega bloque visible de fuente original dentro de la noticia.
+- Extrae etiquetas y las agrega como etiquetas de WordPress, no dentro del texto.
+- Mantiene imagen obligatoria: si no puede extraer/subir imagen, no publica esa noticia.
+- Elimina El País del `config.yaml`.
+- Desactiva filtro de fecha: no descarta por fecha antigua ni por falta de fecha verificable.
+- Agrega protección fuerte de duplicados:
+  - URL original,
+  - URL canónica sin parámetros de tracking,
+  - título normalizado,
+  - slug local,
+  - búsqueda en WordPress antes de publicar.
+- Procesa fuentes en modo round-robin para no quedarse solo con una fuente.
+- Devuelve `source_report` en `/run-now` para ver cuántas noticias encontró/publicó/saltó por fuente.
+- Mantiene fallback de extracción para evitar errores de `0 párrafos`.
+- Mantiene fallback de subida de imagen para evitar errores 406 comunes en hosting compartido.
 
-## Variables recomendadas
+## Variables recomendadas en Render
 
 ```env
 WORDPRESS_URL=https://enriquevirgen.com
@@ -26,19 +36,44 @@ PARAPHRASE_ARTICLE=true
 UPLOAD_FEATURED_IMAGE=true
 REQUIRE_IMAGE=true
 DATE_FILTER_ENABLED=false
+MAX_ARTICLE_AGE_HOURS=0
 SKIP_UNDATED_ARTICLES=false
-INCLUDE_SOURCE_LINK=false
 SMART_CLEAN_CONTENT=true
+INCLUDE_SOURCE_LINK=false
+MIN_PARAGRAPHS_FULL_ARTICLE=2
+REQUEST_TIMEOUT=30
 ```
 
 ## Rutas
 
-- `/` estado del sistema
-- `/test-wordpress` prueba conexión con WordPress
-- `/run-now` ejecuta revisión manual
-- `/latest` últimas publicaciones procesadas
+- `/` estado del sistema.
+- `/test-wordpress` prueba conexión con WordPress.
+- `/run-now` ejecuta revisión manual.
+- `/latest` muestra últimos registros procesados.
 
-## V8
-- Corrige la limpieza inteligente para no borrar todo el cuerpo de notas en sitios como Luz Noticias.
-- Agrega fallback por JSON-LD `articleBody`/`description` y extracción suave desde `body`.
-- Mantiene eliminación de basura, sin bloque de fuente visible y tags en WordPress.
+## Deploy
+
+1. Sube estos archivos a GitHub reemplazando los anteriores.
+2. No subas `.env` con contraseñas reales.
+3. En Render usa: `Manual Deploy → Clear build cache & deploy`.
+4. Revisa `/` y confirma que muestre:
+   - `duplicate_protection`
+   - `source_strategy: round_robin`
+   - `html_entities_decoded: true`
+
+## V10 - Limpieza global UTF-8
+
+Esta versión agrega una capa final de limpieza de caracteres antes de publicar:
+
+- Decodifica entidades HTML repetidas: `&ntilde;`, `&aacute;`, `&amp;ntilde;`, etc.
+- Repara mojibake común: `aÃ±o` → `año`, `â€œ` → `“`, `â€“` → `–`.
+- Elimina caracteres invisibles y espacios raros: `\u200b`, `\ufeff`, `&nbsp;`, etc.
+- Normaliza Unicode con NFC para evitar caracteres combinados extraños.
+- Aplica limpieza a títulos, párrafos, extractos, etiquetas, slugs, alt text e imágenes.
+
+En `/` debe verse:
+
+```json
+"utf8_global_cleaning": true,
+"mojibake_repair": true
+```

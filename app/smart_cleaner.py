@@ -1,6 +1,7 @@
 from __future__ import annotations
 import re
 from bs4 import BeautifulSoup
+from .text_utils import decode_entities
 
 # Selectores comunes de bloques que no forman parte de la nota.
 REMOVE_SELECTORS = [
@@ -49,7 +50,7 @@ BAD_LINE_PATTERNS = [
 
 
 def clean_spaces(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()
+    return decode_entities(text or "")
 
 
 def strip_junk_nodes(node) -> None:

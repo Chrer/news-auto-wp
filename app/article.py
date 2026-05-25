@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 from .config import USER_AGENT, REQUEST_TIMEOUT
 from .smart_cleaner import strip_junk_nodes, extract_clean_text_blocks, extract_loose_text_blocks, clean_paragraphs, clean_spaces as _clean_spaces
+from .text_utils import decode_entities, clean_tag_name, clean_text_global
 
 ARTICLE_SELECTORS = [
     "article", "[itemprop='articleBody']", ".entry-content", ".post-content", ".td-post-content", ".single-content",
@@ -22,7 +23,7 @@ DATE_META_NAMES = [
 
 
 def clean_spaces(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()
+    return decode_entities(text or "")
 
 
 def absolute_url(base_url: str, maybe_url: str | None) -> str | None:
@@ -217,7 +218,7 @@ def extract_tags(soup: BeautifulSoup) -> list[str]:
     clean_tags: list[str] = []
     seen: set[str] = set()
     for tag in tags:
-        tag = clean_spaces(re.sub(r"^[#]+", "", tag))[:50]
+        tag = clean_tag_name(tag)
         key = tag.lower()
         if not tag or len(tag) < 3 or key in seen:
             continue
@@ -236,6 +237,7 @@ def fetch_full_article(url: str) -> dict:
     }
     resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
+    resp.encoding = resp.apparent_encoding or resp.encoding
     soup = BeautifulSoup(resp.text, "html.parser")
     title = get_meta(soup, "og:title", "twitter:title")
     if not title:
@@ -251,8 +253,8 @@ def fetch_full_article(url: str) -> dict:
     published_dt = extract_date(soup)
     tags = extract_tags(soup)
     return {
-        "title": title or "",
-        "description": description or "",
+        "title": clean_text_global(title or ""),
+        "description": clean_text_global(description or ""),
         "paragraphs": paragraphs,
         "text": "\n\n".join(paragraphs),
         "image": image,
