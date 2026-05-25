@@ -32,7 +32,7 @@ def home():
         "paraphrase_article": PARAPHRASE_ARTICLE,
         "upload_featured_image": UPLOAD_FEATURED_IMAGE,
         "require_image": REQUIRE_IMAGE,
-        "max_article_age_hours": MAX_ARTICLE_AGE_HOURS,
+        "date_filter_enabled": False,
         "message": "Automatizador de noticias activo",
     }
     return data

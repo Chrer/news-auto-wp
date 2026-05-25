@@ -14,8 +14,8 @@ Sistema automático para WordPress con extracción de artículo completo para fu
 ## Variables en Render
 
 ```env
-WORDPRESS_URL=
-WORDPRESS_USER=
+WORDPRESS_URL=https://enriquevirgen.com
+WORDPRESS_USER=qwerty123321
 WORDPRESS_APP_PASSWORD=TU_APPLICATION_PASSWORD
 WORDPRESS_STATUS=publish
 RUN_ON_START=false
@@ -50,3 +50,8 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `/test-wordpress` prueba conexión con WordPress.
 - `/run-now` ejecuta revisión manual.
 - `/latest` últimas notas procesadas.
+
+
+## Versión sin filtro de fecha y sin El País
+
+Esta versión elimina las fuentes de El País y ya no descarta noticias por falta de fecha o por tener más de 24 horas. Mantiene la regla de imagen obligatoria si `REQUIRE_IMAGE=true`.

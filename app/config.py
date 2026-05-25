@@ -33,8 +33,8 @@ COPY_FULL_ARTICLE = env_bool("COPY_FULL_ARTICLE", True)
 PARAPHRASE_ARTICLE = env_bool("PARAPHRASE_ARTICLE", True)
 UPLOAD_FEATURED_IMAGE = env_bool("UPLOAD_FEATURED_IMAGE", True)
 REQUIRE_IMAGE = env_bool("REQUIRE_IMAGE", True)
-MAX_ARTICLE_AGE_HOURS = env_int("MAX_ARTICLE_AGE_HOURS", 24)
-SKIP_UNDATED_ARTICLES = env_bool("SKIP_UNDATED_ARTICLES", True)
+MAX_ARTICLE_AGE_HOURS = env_int("MAX_ARTICLE_AGE_HOURS", 0)  # desactivado en esta versión
+SKIP_UNDATED_ARTICLES = env_bool("SKIP_UNDATED_ARTICLES", False)  # desactivado en esta versión
 INCLUDE_SOURCE_LINK = env_bool("INCLUDE_SOURCE_LINK", True)
 
 USER_AGENT = os.getenv("USER_AGENT", "NewsAutoBot/3.0 (+https://enriquevirgen.com)")

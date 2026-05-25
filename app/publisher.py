@@ -1,10 +1,9 @@
 from __future__ import annotations
-from datetime import datetime, timezone
 from html import escape
 from .config import (
     MIN_SUMMARY_LENGTH, MAX_POSTS_PER_RUN, WORDPRESS_STATUS, load_yaml_config,
     COPY_FULL_ARTICLE, PARAPHRASE_ARTICLE, UPLOAD_FEATURED_IMAGE, INCLUDE_SOURCE_LINK,
-    REQUIRE_IMAGE, MAX_ARTICLE_AGE_HOURS, SKIP_UNDATED_ARTICLES, MIN_PARAGRAPHS_FULL_ARTICLE
+    REQUIRE_IMAGE, MIN_PARAGRAPHS_FULL_ARTICLE
 )
 from .database import already_processed, mark_processed
 from .feeds import read_feed
@@ -25,20 +24,6 @@ def choose_category(item: dict, cfg: dict) -> str:
 
 def get_source_status(item: dict, cfg: dict) -> str:
     return item.get("source_status") or cfg.get("site", {}).get("default_status") or WORDPRESS_STATUS
-
-
-def article_is_recent(published_dt: datetime | None, max_hours: int = 24) -> tuple[bool, str]:
-    if not published_dt:
-        if SKIP_UNDATED_ARTICLES:
-            return False, "sin fecha de publicación verificable"
-        return True, "fecha no disponible, permitido por configuración"
-    now = datetime.now(timezone.utc)
-    age_hours = (now - published_dt.astimezone(timezone.utc)).total_seconds() / 3600
-    if age_hours < 0:
-        return True, "fecha futura o reciente"
-    if age_hours > max_hours:
-        return False, f"noticia antigua: {age_hours:.1f} horas"
-    return True, f"reciente: {age_hours:.1f} horas"
 
 
 def build_full_content(item: dict, paragraphs: list[str]) -> str:
@@ -119,10 +104,7 @@ def run_once() -> dict:
                 status = get_source_status(item, cfg)
                 title, content, image_url, published_dt = prepare_item_content(item, cfg)
 
-                recent_ok, recent_reason = article_is_recent(published_dt, MAX_ARTICLE_AGE_HOURS)
-                if not recent_ok:
-                    skipped.append({"title": title, "reason": recent_reason})
-                    continue
+                # Regla de fecha desactivada: se permite publicar aunque no exista fecha verificable.
 
                 media_id = None
                 if UPLOAD_FEATURED_IMAGE:
