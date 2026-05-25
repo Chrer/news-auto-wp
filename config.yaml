@@ -1,13 +1,7 @@
 site:
   default_category: "Nacional"
   default_status: "publish"
-  include_external_image_in_content: false
   add_original_link: true
-  post_template: |
-    <p>{summary}</p>
-
-    <p><strong>Fuente:</strong> {source_name}</p>
-    <p><a href="{original_url}" target="_blank" rel="nofollow noopener">Leer nota completa en la fuente original</a></p>
 
 sources:
   - name: "Línea Directa"
@@ -29,12 +23,12 @@ sources:
 
 category_rules:
   - category: "Policiaca"
-    keywords: ["policiaca", "seguridad", "detenido", "asesinado", "homicidio", "balacera", "violencia", "accidente", "fiscalía"]
+    keywords: ["policiaca", "seguridad", "detenido", "asesinado", "homicidio", "balacera", "violencia", "accidente", "fiscalía", "policía", "cárcel"]
   - category: "Economía"
-    keywords: ["economía", "infonavit", "dólar", "peso", "finanzas", "precio", "banco", "crédito", "empleo"]
+    keywords: ["economía", "infonavit", "dólar", "peso", "finanzas", "precio", "banco", "crédito", "empleo", "canasta básica"]
   - category: "Ciencia y Tecnología"
-    keywords: ["tecnología", "ciencia", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular"]
+    keywords: ["tecnología", "ciencia", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular", "software"]
   - category: "Internacional"
-    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia"]
+    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia", "trump", "biden"]
   - category: "Opinión"
     keywords: ["opinión", "columna", "editorial"]

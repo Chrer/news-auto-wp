@@ -1,69 +1,52 @@
-# News Auto WordPress sin IA
+# News Auto WordPress Full
 
-Sistema automático para leer noticias desde RSS o feeds detectados, crear entradas cortas con fuente original y publicarlas directamente en WordPress.
+Sistema automático para sitios propios/autorizados. Lee feeds, abre cada nota, extrae el cuerpo completo, aplica una paráfrasis básica sin API de IA, sube la imagen destacada a WordPress y publica automáticamente.
 
 ## Importante
-Este sistema no usa API de IA. Publica título, resumen del feed, fuente y enlace original. No copia el cuerpo completo de la noticia.
+Usa este modo solamente con sitios tuyos o con autorización para reutilizar contenido e imágenes.
 
-## Instalación local
+## Variables de entorno en Render
+
+```env
+WORDPRESS_URL=https://enriquevirgen.com
+WORDPRESS_USER=qwerty123321
+WORDPRESS_APP_PASSWORD=TU_APPLICATION_PASSWORD
+WORDPRESS_STATUS=publish
+RUN_ON_START=true
+CHECK_INTERVAL_MINUTES=30
+MAX_POSTS_PER_RUN=8
+COPY_FULL_ARTICLE=true
+PARAPHRASE_ARTICLE=true
+UPLOAD_FEATURED_IMAGE=true
+INCLUDE_SOURCE_LINK=true
+```
+
+## Render
+
+Build command:
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
-Edita `.env` y coloca tu Application Password de WordPress.
-
-## Ejecutar
+Start command:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-Abre:
+## Rutas
 
-```text
-http://localhost:8000
-```
+- `/` estado del sistema.
+- `/test-wordpress` prueba conexión con WordPress.
+- `/run-now` ejecuta revisión manual. Acepta GET y POST.
+- `/latest` últimas notas procesadas.
 
-## Publicación automática
+## Qué cambió en esta versión
 
-Por defecto revisa fuentes cada 30 minutos y publica directo con `WORDPRESS_STATUS=publish`.
-
-## Deploy en Render
-
-1. Sube este proyecto a GitHub.
-2. En Render crea un `Web Service`.
-3. Build command:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start command:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port $PORT
-   ```
-5. Agrega variables de entorno:
-   - WORDPRESS_URL
-   - WORDPRESS_USER
-   - WORDPRESS_APP_PASSWORD
-   - WORDPRESS_STATUS=publish
-   - CHECK_INTERVAL_MINUTES=30
-
-## Deploy en VPS
-
-```bash
-sudo apt update
-sudo apt install python3 python3-venv python3-pip -y
-git clone TU_REPOSITORIO news-auto-wp
-cd news-auto-wp
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-nano .env
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Para producción, usa systemd o supervisor.
+- `/run-now` funciona desde navegador.
+- Mensajes de error de WordPress más claros.
+- Extrae cuerpo completo de la nota desde el HTML.
+- Paráfrasis básica sin API de IA.
+- Extrae imagen OpenGraph o primera imagen del artículo.
+- Sube la imagen a WordPress y la asigna como imagen destacada.
