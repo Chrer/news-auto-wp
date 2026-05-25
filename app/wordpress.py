@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import urlparse
 import requests
+import hashlib
 from requests.auth import HTTPBasicAuth
 from slugify import slugify
 from .config import WORDPRESS_URL, WORDPRESS_USER, WORDPRESS_APP_PASSWORD, USER_AGENT, REQUEST_TIMEOUT
@@ -43,29 +44,90 @@ class WordPressClient:
         return created.get("id")
 
     def upload_media(self, image_url: str, alt_text: str = "") -> int | None:
+        """
+        Descarga una imagen remota y la sube a WordPress.
+
+        Esta versión evita errores 406 comunes en hosting compartido/ModSecurity:
+        - no usa el nombre original de la imagen, porque a veces trae caracteres raros o querystrings;
+        - normaliza el nombre del archivo;
+        - agrega Accept;
+        - intenta primero subida binaria estándar y luego multipart/form-data como respaldo.
+        """
         if not image_url:
             return None
-        headers = {"User-Agent": USER_AGENT}
-        img_resp = requests.get(image_url, headers=headers, timeout=REQUEST_TIMEOUT)
+
+        image_headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Referer": WORDPRESS_URL,
+        }
+
+        img_resp = requests.get(image_url, headers=image_headers, timeout=REQUEST_TIMEOUT, allow_redirects=True)
         img_resp.raise_for_status()
-        content_type = img_resp.headers.get("Content-Type", "image/jpeg").split(";")[0]
+
+        content_type = (img_resp.headers.get("Content-Type") or "image/jpeg").split(";")[0].strip().lower()
         if not content_type.startswith("image/"):
             return None
-        parsed = urlparse(image_url)
-        filename = Path(parsed.path).name or "imagen-noticia.jpg"
-        if "." not in filename:
-            ext = content_type.split("/")[-1].replace("jpeg", "jpg")
-            filename = f"imagen-noticia.{ext}"
+
+        if content_type in ("image/jpeg", "image/jpg"):
+            ext = "jpg"
+            content_type = "image/jpeg"
+        elif content_type == "image/png":
+            ext = "png"
+        elif content_type == "image/webp":
+            ext = "webp"
+        elif content_type == "image/gif":
+            ext = "gif"
+        else:
+            # Evita formatos problemáticos como svg/avif/heic si WordPress o el hosting los rechaza.
+            return None
+
+        image_bytes = img_resp.content
+        if not image_bytes or len(image_bytes) < 500:
+            return None
+
+        file_hash = hashlib.sha1((image_url + str(len(image_bytes))).encode("utf-8")).hexdigest()[:12]
+        filename = f"noticia-{file_hash}.{ext}"
+        url = f"{self.base}/media"
+
+        # Intento 1: subida binaria recomendada por WordPress REST API.
         media_headers = {
             "User-Agent": USER_AGENT,
+            "Accept": "application/json",
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Content-Type": content_type,
         }
-        url = f"{self.base}/media"
-        resp = requests.post(url, auth=self.auth, headers=media_headers, data=img_resp.content, timeout=60)
+
+        resp = requests.post(
+            url,
+            auth=self.auth,
+            headers=media_headers,
+            data=image_bytes,
+            timeout=90,
+        )
+
+        # Intento 2: algunos hostings bloquean el modo binario y aceptan multipart/form-data.
+        if resp.status_code == 406:
+            resp = requests.post(
+                url,
+                auth=self.auth,
+                headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
+                files={"file": (filename, image_bytes, content_type)},
+                timeout=90,
+            )
+
         if resp.status_code in (401, 403):
-            raise RuntimeError("WordPress rechazó la subida de imagen. Revisa permisos para subir medios.")
-        resp.raise_for_status()
+            raise RuntimeError(
+                "WordPress rechazó la subida de imagen. Revisa permisos del usuario para subir medios. "
+                f"Código: {resp.status_code}. Respuesta: {resp.text[:300]}"
+            )
+
+        if resp.status_code >= 400:
+            raise RuntimeError(
+                f"falló subida de imagen: {resp.status_code} {resp.reason} para {url}. "
+                f"Respuesta WordPress: {resp.text[:500]}"
+            )
+
         media = resp.json()
         media_id = media.get("id")
         if media_id and alt_text:

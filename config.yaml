@@ -39,6 +39,20 @@ sources:
     status: "publish"
     full_article: true
 
+  - name: "El País Ciencia"
+    home_url: "https://elpais.com/ciencia/"
+    feed_url: null
+    category: "Ciencia y Tecnología"
+    status: "draft"
+    full_article: true
+
+  - name: "El País Internacional"
+    home_url: "https://elpais.com/internacional/"
+    feed_url: null
+    category: "Internacional"
+    status: "draft"
+    full_article: true
+
 category_rules:
   - category: "Policiaca"
     keywords: ["policiaca", "seguridad", "detenido", "asesinado", "homicidio", "balacera", "violencia", "accidente", "fiscalía", "policía", "cárcel"]

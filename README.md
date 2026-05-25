@@ -52,6 +52,5 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 - `/latest` últimas notas procesadas.
 
 
-## Versión sin filtro de fecha y sin El País
-
-Esta versión elimina las fuentes de El País y ya no descarta noticias por falta de fecha o por tener más de 24 horas. Mantiene la regla de imagen obligatoria si `REQUIRE_IMAGE=true`.
+## v5
+- Corrige subida de imágenes con fallback multipart para evitar errores 406 en WordPress/hosting compartido.
