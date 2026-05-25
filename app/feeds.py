@@ -1,6 +1,7 @@
 from __future__ import annotations
 import re
-from typing import Iterable
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
@@ -66,27 +67,52 @@ def get_entry_image(entry) -> str | None:
     return None
 
 
+def parse_entry_datetime(entry) -> datetime | None:
+    for key in ("published_parsed", "updated_parsed"):
+        value = entry.get(key)
+        if value:
+            try:
+                return datetime(*value[:6], tzinfo=timezone.utc)
+            except Exception:
+                pass
+    for key in ("published", "updated", "created"):
+        value = entry.get(key)
+        if value:
+            try:
+                dt = parsedate_to_datetime(value)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc)
+            except Exception:
+                pass
+    return None
+
+
 def read_feed(source: dict) -> list[dict]:
     feed_url = source.get("feed_url") or discover_feed(source["home_url"])
     if not feed_url:
         return []
     parsed = feedparser.parse(feed_url)
     items = []
-    for entry in parsed.entries[:15]:
+    for entry in parsed.entries[:25]:
         title = html_to_text(entry.get("title", ""))
         link = normalize_url(entry.get("link", ""))
         summary = html_to_text(entry.get("summary", "") or entry.get("description", ""))
         if not title or not link:
             continue
+        published_dt = parse_entry_datetime(entry)
         items.append(
             {
                 "title": title,
                 "url": link,
                 "summary": summary,
-                "published": entry.get("published", ""),
+                "published": entry.get("published", "") or entry.get("updated", ""),
+                "published_dt": published_dt,
                 "image": get_entry_image(entry),
                 "source_name": source.get("name", "Fuente"),
                 "default_category": source.get("category"),
+                "source_status": source.get("status"),
+                "source_full_article": bool(source.get("full_article", True)),
             }
         )
     return items

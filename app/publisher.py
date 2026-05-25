@@ -1,8 +1,10 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 from html import escape
 from .config import (
     MIN_SUMMARY_LENGTH, MAX_POSTS_PER_RUN, WORDPRESS_STATUS, load_yaml_config,
-    COPY_FULL_ARTICLE, PARAPHRASE_ARTICLE, UPLOAD_FEATURED_IMAGE, INCLUDE_SOURCE_LINK
+    COPY_FULL_ARTICLE, PARAPHRASE_ARTICLE, UPLOAD_FEATURED_IMAGE, INCLUDE_SOURCE_LINK,
+    REQUIRE_IMAGE, MAX_ARTICLE_AGE_HOURS, SKIP_UNDATED_ARTICLES, MIN_PARAGRAPHS_FULL_ARTICLE
 )
 from .database import already_processed, mark_processed
 from .feeds import read_feed
@@ -12,12 +14,31 @@ from .wordpress import WordPressClient
 
 
 def choose_category(item: dict, cfg: dict) -> str:
-    text = f"{item.get('title','')} {item.get('summary','')}".lower()
+    text = f"{item.get('title','')} {item.get('summary','')}",
+    text = " ".join(text).lower()
     for rule in cfg.get("category_rules", []):
         for kw in rule.get("keywords", []):
             if kw.lower() in text:
                 return rule["category"]
     return item.get("default_category") or cfg.get("site", {}).get("default_category", "Nacional")
+
+
+def get_source_status(item: dict, cfg: dict) -> str:
+    return item.get("source_status") or cfg.get("site", {}).get("default_status") or WORDPRESS_STATUS
+
+
+def article_is_recent(published_dt: datetime | None, max_hours: int = 24) -> tuple[bool, str]:
+    if not published_dt:
+        if SKIP_UNDATED_ARTICLES:
+            return False, "sin fecha de publicación verificable"
+        return True, "fecha no disponible, permitido por configuración"
+    now = datetime.now(timezone.utc)
+    age_hours = (now - published_dt.astimezone(timezone.utc)).total_seconds() / 3600
+    if age_hours < 0:
+        return True, "fecha futura o reciente"
+    if age_hours > max_hours:
+        return False, f"noticia antigua: {age_hours:.1f} horas"
+    return True, f"reciente: {age_hours:.1f} horas"
 
 
 def build_full_content(item: dict, paragraphs: list[str]) -> str:
@@ -29,8 +50,7 @@ def build_full_content(item: dict, paragraphs: list[str]) -> str:
         blocks.append("<hr />")
         blocks.append(f"<p><strong>Fuente original:</strong> {escape(item.get('source_name', 'Fuente'))}</p>")
         blocks.append(f'<p><a href="{escape(item["url"])}" target="_blank" rel="nofollow noopener">Ver publicación original</a></p>')
-    return "
-".join(blocks)
+    return "\n".join(blocks)
 
 
 def build_summary_content(item: dict, cfg: dict) -> str:
@@ -46,10 +66,12 @@ def build_summary_content(item: dict, cfg: dict) -> str:
     )
 
 
-def prepare_item_content(item: dict, cfg: dict) -> tuple[str, str, str | None]:
-    """Regresa title, content, image_url."""
+def prepare_item_content(item: dict, cfg: dict) -> tuple[str, str, str | None, datetime | None]:
+    """Regresa title, content, image_url, published_dt."""
     image_url = item.get("image")
-    if COPY_FULL_ARTICLE:
+    published_dt = item.get("published_dt")
+    should_copy_full = COPY_FULL_ARTICLE and item.get("source_full_article", True)
+    if should_copy_full:
         article = fetch_full_article(item["url"])
         if article.get("title"):
             item["title"] = article["title"]
@@ -57,12 +79,15 @@ def prepare_item_content(item: dict, cfg: dict) -> tuple[str, str, str | None]:
             item["summary"] = article["description"]
         if article.get("image"):
             image_url = article["image"]
+        if article.get("published_dt"):
+            published_dt = article["published_dt"]
         paragraphs = article.get("paragraphs") or []
+        if len(paragraphs) < MIN_PARAGRAPHS_FULL_ARTICLE:
+            raise RuntimeError(f"no se pudo extraer cuerpo completo suficiente: {len(paragraphs)} párrafos")
         if PARAPHRASE_ARTICLE:
             paragraphs = paraphrase_text(paragraphs)
-        if paragraphs:
-            return item["title"], build_full_content(item, paragraphs), image_url
-    return item["title"], build_summary_content(item, cfg), image_url
+        return item["title"], build_full_content(item, paragraphs), image_url, published_dt
+    return item["title"], build_summary_content(item, cfg), image_url, published_dt
 
 
 def run_once() -> dict:
@@ -91,28 +116,51 @@ def run_once() -> dict:
 
             try:
                 category = choose_category(item, cfg)
-                title, content, image_url = prepare_item_content(item, cfg)
+                status = get_source_status(item, cfg)
+                title, content, image_url, published_dt = prepare_item_content(item, cfg)
+
+                recent_ok, recent_reason = article_is_recent(published_dt, MAX_ARTICLE_AGE_HOURS)
+                if not recent_ok:
+                    skipped.append({"title": title, "reason": recent_reason})
+                    continue
+
                 media_id = None
-                image_error = None
-                if UPLOAD_FEATURED_IMAGE and image_url:
-                    try:
-                        media_id = wp.upload_media(image_url, alt_text=title)
-                    except Exception as exc:
-                        image_error = str(exc)
+                if UPLOAD_FEATURED_IMAGE:
+                    if not image_url:
+                        if REQUIRE_IMAGE:
+                            skipped.append({"title": title, "reason": "sin imagen extraíble"})
+                            continue
+                    else:
+                        try:
+                            media_id = wp.upload_media(image_url, alt_text=title)
+                        except Exception as exc:
+                            if REQUIRE_IMAGE:
+                                skipped.append({"title": title, "reason": f"falló subida de imagen: {exc}"})
+                                continue
+                            errors.append({"title": title, "warning": f"imagen no subida: {exc}"})
+                        if REQUIRE_IMAGE and not media_id:
+                            skipped.append({"title": title, "reason": "imagen inválida o no descargable"})
+                            continue
+
+                # Publica inmediatamente esta noticia válida antes de seguir buscando.
                 post = wp.create_post(
                     title=title,
                     content=content,
                     category_name=category,
-                    status=WORDPRESS_STATUS,
+                    status=status,
                     excerpt=item.get("summary", ""),
                     featured_media=media_id,
                 )
-                mark_processed(item["url"], title, item.get("source_name", ""), post.get("id"))
-                published_item = {"title": title, "category": category, "wp_id": post.get("id"), "link": post.get("link"), "featured_media": media_id}
-                if image_error:
-                    published_item["image_warning"] = image_error
-                published.append(published_item)
+                mark_processed(item["url"], title, item.get("source_name", ""), post.get("id"), status)
+                published.append({
+                    "title": title,
+                    "category": category,
+                    "status": status,
+                    "wp_id": post.get("id"),
+                    "link": post.get("link"),
+                    "featured_media": media_id,
+                })
             except Exception as exc:
                 errors.append({"title": item.get("title"), "url": item.get("url"), "error": str(exc)})
 
-    return {"published": published, "skipped": skipped[:20], "errors": errors}
+    return {"published": published, "skipped": skipped[:50], "errors": errors}

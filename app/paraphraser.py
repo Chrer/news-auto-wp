@@ -2,20 +2,20 @@ from __future__ import annotations
 import re
 
 REPLACEMENTS = [
-    (r"señaló", "indicó"),
-    (r"informó", "dio a conocer"),
-    (r"explicó", "detalló"),
-    (r"de acuerdo con", "según"),
-    (r"manifestó", "expresó"),
-    (r"afirmó", "aseguró"),
-    (r"agregó", "añadió"),
-    (r"debido a", "a causa de"),
-    (r"por lo que", "por ello"),
-    (r"actualmente", "en la actualidad"),
-    (r"además", "también"),
-    (r"tras", "después de"),
-    (r"antes de", "previo a"),
-    (r"con el objetivo de", "con la finalidad de"),
+    (r"\bseñaló\b", "indicó"),
+    (r"\binformó\b", "dio a conocer"),
+    (r"\bexplicó\b", "detalló"),
+    (r"\bde acuerdo con\b", "según"),
+    (r"\bmanifestó\b", "expresó"),
+    (r"\bafirmó\b", "aseguró"),
+    (r"\bagregó\b", "añadió"),
+    (r"\bdebido a\b", "a causa de"),
+    (r"\bpor lo que\b", "por ello"),
+    (r"\bactualmente\b", "en la actualidad"),
+    (r"\bademás\b", "también"),
+    (r"\btras\b", "después de"),
+    (r"\bantes de\b", "previo a"),
+    (r"\bcon el objetivo de\b", "con la finalidad de"),
 ]
 
 OPENERS = [
@@ -28,7 +28,6 @@ OPENERS = [
 
 
 def _replace_outside_quotes(text: str) -> str:
-    # Evita modificar citas entre comillas dobles o latinas.
     parts = re.split(r'("[^"]*"|“[^”]*”|«[^»]*»)', text)
     out = []
     for part in parts:
@@ -49,7 +48,6 @@ def paraphrase_paragraph(paragraph: str, index: int = 0) -> str:
     if not p:
         return ""
     p = _replace_outside_quotes(p)
-    # Cambia un poco la estructura en párrafos largos, sin tocar cifras/nombres.
     if index > 0 and len(p) > 120 and not p.lower().startswith(("en ", "de ", "según", "como ")):
         p = OPENERS[index % len(OPENERS)] + p[0].lower() + p[1:]
     return p

@@ -12,4 +12,8 @@ services:
       - key: WORDPRESS_STATUS
         value: publish
       - key: CHECK_INTERVAL_MINUTES
-        value: 30
+        value: 5
+      - key: REQUIRE_IMAGE
+        value: true
+      - key: MAX_ARTICLE_AGE_HOURS
+        value: 24

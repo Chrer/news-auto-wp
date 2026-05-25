@@ -8,18 +8,50 @@ sources:
     home_url: "https://lineadirectaportal.com"
     feed_url: null
     category: "Nacional"
+    status: "publish"
+    full_article: true
+
   - name: "Ríodoce"
     home_url: "https://riodoce.mx"
     feed_url: null
     category: "Nacional"
+    status: "publish"
+    full_article: true
+
   - name: "Debate"
     home_url: "https://debate.com.mx"
     feed_url: null
     category: "Nacional"
+    status: "publish"
+    full_article: true
+
   - name: "Luz Noticias"
     home_url: "https://www.luznoticias.mx/"
     feed_url: null
     category: "Nacional"
+    status: "publish"
+    full_article: true
+
+  - name: "Noticias de la Ciencia"
+    home_url: "https://noticiasdelaciencia.com"
+    feed_url: null
+    category: "Ciencia y Tecnología"
+    status: "publish"
+    full_article: true
+
+  - name: "El País Ciencia"
+    home_url: "https://elpais.com/ciencia/"
+    feed_url: null
+    category: "Ciencia y Tecnología"
+    status: "draft"
+    full_article: true
+
+  - name: "El País Internacional"
+    home_url: "https://elpais.com/internacional/"
+    feed_url: null
+    category: "Internacional"
+    status: "draft"
+    full_article: true
 
 category_rules:
   - category: "Policiaca"
@@ -27,8 +59,8 @@ category_rules:
   - category: "Economía"
     keywords: ["economía", "infonavit", "dólar", "peso", "finanzas", "precio", "banco", "crédito", "empleo", "canasta básica"]
   - category: "Ciencia y Tecnología"
-    keywords: ["tecnología", "ciencia", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular", "software"]
+    keywords: ["tecnología", "ciencia", "investigación", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular", "software", "astronomía", "salud", "medicina"]
   - category: "Internacional"
-    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia", "trump", "biden"]
+    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia", "trump", "biden", "francia", "ucrania", "israel", "gaza"]
   - category: "Opinión"
     keywords: ["opinión", "columna", "editorial"]
