@@ -1,0 +1,40 @@
+site:
+  default_category: "Nacional"
+  default_status: "publish"
+  include_external_image_in_content: false
+  add_original_link: true
+  post_template: |
+    <p>{summary}</p>
+
+    <p><strong>Fuente:</strong> {source_name}</p>
+    <p><a href="{original_url}" target="_blank" rel="nofollow noopener">Leer nota completa en la fuente original</a></p>
+
+sources:
+  - name: "Línea Directa"
+    home_url: "https://lineadirectaportal.com"
+    feed_url: null
+    category: "Nacional"
+  - name: "Ríodoce"
+    home_url: "https://riodoce.mx"
+    feed_url: null
+    category: "Nacional"
+  - name: "Debate"
+    home_url: "https://debate.com.mx"
+    feed_url: null
+    category: "Nacional"
+  - name: "Luz Noticias"
+    home_url: "https://www.luznoticias.mx/"
+    feed_url: null
+    category: "Nacional"
+
+category_rules:
+  - category: "Policiaca"
+    keywords: ["policiaca", "seguridad", "detenido", "asesinado", "homicidio", "balacera", "violencia", "accidente", "fiscalía"]
+  - category: "Economía"
+    keywords: ["economía", "infonavit", "dólar", "peso", "finanzas", "precio", "banco", "crédito", "empleo"]
+  - category: "Ciencia y Tecnología"
+    keywords: ["tecnología", "ciencia", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular"]
+  - category: "Internacional"
+    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia"]
+  - category: "Opinión"
+    keywords: ["opinión", "columna", "editorial"]

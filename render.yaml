@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: news-auto-wp
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: WORDPRESS_URL
+        value: https://enriquevirgen.com
+      - key: WORDPRESS_USER
+        value: qwerty123321
+      - key: WORDPRESS_STATUS
+        value: publish
+      - key: CHECK_INTERVAL_MINUTES
+        value: 30
