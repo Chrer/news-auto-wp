@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 import re
 from datetime import datetime, timezone
 from urllib.parse import urljoin
@@ -7,11 +8,12 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 from .config import USER_AGENT, REQUEST_TIMEOUT
-from .smart_cleaner import strip_junk_nodes, extract_clean_text_blocks, clean_paragraphs
+from .smart_cleaner import strip_junk_nodes, extract_clean_text_blocks, extract_loose_text_blocks, clean_paragraphs, clean_spaces as _clean_spaces
 
 ARTICLE_SELECTORS = [
-    "article", ".entry-content", ".post-content", ".td-post-content", ".single-content",
-    ".article-content", ".news-content", ".nota-content", ".content", ".story-body", "main"
+    "article", "[itemprop='articleBody']", ".entry-content", ".post-content", ".td-post-content", ".single-content",
+    ".article-content", ".news-content", ".nota-content", ".story-body", ".post-body", ".article-body",
+    "main"
 ]
 DATE_META_NAMES = [
     "article:published_time", "article:modified_time", "og:updated_time", "date", "pubdate",
@@ -66,21 +68,104 @@ def extract_date(soup: BeautifulSoup) -> datetime | None:
         dt = parse_datetime(time_tag.get("datetime") or time_tag.get_text(" ", strip=True))
         if dt:
             return dt
+    # JSON-LD
+    for data in extract_json_ld(soup):
+        value = data.get("datePublished") or data.get("dateModified")
+        dt = parse_datetime(value)
+        if dt:
+            return dt
     return None
 
 
+def extract_json_ld(soup: BeautifulSoup) -> list[dict]:
+    items: list[dict] = []
+    for script in soup.find_all("script", type=lambda v: v and "ld+json" in v):
+        raw = script.string or script.get_text(" ", strip=True)
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            continue
+        stack = parsed if isinstance(parsed, list) else [parsed]
+        while stack:
+            obj = stack.pop(0)
+            if isinstance(obj, dict):
+                items.append(obj)
+                graph = obj.get("@graph")
+                if isinstance(graph, list):
+                    stack.extend(graph)
+            elif isinstance(obj, list):
+                stack.extend(obj)
+    return items
+
+
+def jsonld_article_data(soup: BeautifulSoup) -> dict:
+    for obj in extract_json_ld(soup):
+        typ = obj.get("@type", "")
+        types = typ if isinstance(typ, list) else [typ]
+        if any(str(t).lower() in {"newsarticle", "article", "blogposting"} for t in types):
+            return obj
+    return {}
+
+
+def text_from_jsonld_body(soup: BeautifulSoup, title: str = "") -> list[str]:
+    obj = jsonld_article_data(soup)
+    body = obj.get("articleBody") or obj.get("description") or ""
+    if not body:
+        return []
+    # Divide por saltos o por frases largas.
+    parts = [p.strip() for p in re.split(r"\n{2,}|\r{2,}", body) if p.strip()]
+    if len(parts) <= 1:
+        parts = [p.strip() for p in re.split(r"(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿¡\"])", body) if len(p.strip()) > 40]
+    return clean_paragraphs(parts, title=title, allow_loose=True)
+
+
+def node_score(node) -> int:
+    if not node:
+        return 0
+    text = clean_spaces(node.get_text(" ", strip=True))
+    p_count = len(node.find_all(["p", "h2", "h3", "li"]))
+    return min(len(text), 8000) + p_count * 300
+
+
 def find_article_node(soup: BeautifulSoup):
+    candidates = []
     for selector in ARTICLE_SELECTORS:
-        node = soup.select_one(selector)
-        if node:
-            return node
-    return soup.body or soup
+        try:
+            candidates.extend(soup.select(selector))
+        except Exception:
+            continue
+    if soup.body:
+        candidates.append(soup.body)
+    if not candidates:
+        return soup
+    return max(candidates, key=node_score)
+
+
+def extract_image_from_jsonld(soup: BeautifulSoup, page_url: str) -> str | None:
+    obj = jsonld_article_data(soup)
+    image = obj.get("image")
+    if isinstance(image, str):
+        return absolute_url(page_url, image)
+    if isinstance(image, list) and image:
+        first = image[0]
+        if isinstance(first, str):
+            return absolute_url(page_url, first)
+        if isinstance(first, dict) and first.get("url"):
+            return absolute_url(page_url, first.get("url"))
+    if isinstance(image, dict):
+        return absolute_url(page_url, image.get("url") or image.get("contentUrl"))
+    return None
 
 
 def extract_image(soup: BeautifulSoup, page_url: str) -> str | None:
     image = get_meta(soup, "og:image", "twitter:image", "twitter:image:src", "image")
     if image:
         return absolute_url(page_url, image)
+    image = extract_image_from_jsonld(soup, page_url)
+    if image:
+        return image
     article = find_article_node(soup)
     if article:
         for img in article.find_all("img"):
@@ -90,27 +175,41 @@ def extract_image(soup: BeautifulSoup, page_url: str) -> str | None:
     return None
 
 
-def extract_paragraphs_from_node(node, title: str = "") -> list[str]:
+def extract_paragraphs_from_node(node, soup: BeautifulSoup, title: str = "") -> list[str]:
     # Mini limpiador inteligente local: quita publicidad, relacionados, botones, redes, newsletter, menús y texto repetido.
     paragraphs = extract_clean_text_blocks(node, title=title)
-    return paragraphs[:60]
+    if len(paragraphs) >= 2:
+        return paragraphs[:80]
+
+    # Fallback 1: JSON-LD articleBody/description.
+    paragraphs = text_from_jsonld_body(soup, title=title)
+    if len(paragraphs) >= 2:
+        return paragraphs[:80]
+
+    # Fallback 2: extracción más suave desde body, útil cuando el HTML no usa <article> o usa clases raras.
+    fallback_node = soup.body or soup
+    paragraphs = extract_loose_text_blocks(fallback_node, title=title)
+    return paragraphs[:80]
 
 
 def extract_tags(soup: BeautifulSoup) -> list[str]:
     tags: list[str] = []
-    # Meta keywords tradicional
     keywords = get_meta(soup, "keywords", "news_keywords")
     if keywords:
         for part in re.split(r"[,;|]", keywords):
             value = clean_spaces(part)
             if value:
                 tags.append(value)
-    # OpenGraph/article tags
     for meta in soup.find_all("meta", property="article:tag"):
         value = clean_spaces(meta.get("content", ""))
         if value:
             tags.append(value)
-    # Links o elementos visibles de tags, pero no se agregan al contenido de la nota
+    for obj in extract_json_ld(soup):
+        kws = obj.get("keywords")
+        if isinstance(kws, str):
+            tags.extend([clean_spaces(x) for x in re.split(r"[,;|]", kws) if clean_spaces(x)])
+        elif isinstance(kws, list):
+            tags.extend([clean_spaces(str(x)) for x in kws if clean_spaces(str(x))])
     for a in soup.select("a[rel~='tag'], .tags a, .tagcloud a, .entry-tags a, .post-tags a"):
         value = clean_spaces(a.get_text(" ", strip=True))
         if value:
@@ -130,18 +229,24 @@ def extract_tags(soup: BeautifulSoup) -> list[str]:
 
 
 def fetch_full_article(url: str) -> dict:
-    headers = {"User-Agent": USER_AGENT}
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-MX,es;q=0.9,en;q=0.8",
+    }
     resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
     title = get_meta(soup, "og:title", "twitter:title")
+    if not title:
+        obj = jsonld_article_data(soup)
+        title = clean_spaces(obj.get("headline") or obj.get("name") or "")
     if not title and soup.title:
         title = clean_spaces(soup.title.get_text(" ", strip=True))
     description = get_meta(soup, "og:description", "description", "twitter:description")
     node = find_article_node(soup)
-    # Limpia basura antes de extraer contenido
     strip_junk_nodes(node)
-    paragraphs = extract_paragraphs_from_node(node, title=title or "")
+    paragraphs = extract_paragraphs_from_node(node, soup=soup, title=title or "")
     image = extract_image(soup, url)
     published_dt = extract_date(soup)
     tags = extract_tags(soup)

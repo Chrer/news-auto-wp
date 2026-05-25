@@ -37,3 +37,8 @@ SMART_CLEAN_CONTENT=true
 - `/test-wordpress` prueba conexión con WordPress
 - `/run-now` ejecuta revisión manual
 - `/latest` últimas publicaciones procesadas
+
+## V8
+- Corrige la limpieza inteligente para no borrar todo el cuerpo de notas en sitios como Luz Noticias.
+- Agrega fallback por JSON-LD `articleBody`/`description` y extracción suave desde `body`.
+- Mantiene eliminación de basura, sin bloque de fuente visible y tags en WordPress.
