@@ -7,12 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
 from .config import USER_AGENT, REQUEST_TIMEOUT
+from .smart_cleaner import strip_junk_nodes, extract_clean_text_blocks, clean_paragraphs
 
-BAD_SELECTORS = [
-    "script", "style", "noscript", "iframe", "svg", "form", "nav", "header", "footer",
-    ".sharedaddy", ".share", ".social", ".comments", "#comments", ".related", ".advertisement",
-    ".ads", ".ad", ".banner", ".newsletter", ".breadcrumb", ".author-box", ".menu", ".sidebar"
-]
 ARTICLE_SELECTORS = [
     "article", ".entry-content", ".post-content", ".td-post-content", ".single-content",
     ".article-content", ".news-content", ".nota-content", ".content", ".story-body", "main"
@@ -94,29 +90,43 @@ def extract_image(soup: BeautifulSoup, page_url: str) -> str | None:
     return None
 
 
-def extract_paragraphs_from_node(node) -> list[str]:
-    for selector in BAD_SELECTORS:
-        for bad in node.select(selector):
-            bad.decompose()
-    paragraphs = []
-    for tag in node.find_all(["p", "h2", "h3", "li"], recursive=True):
-        text = clean_spaces(tag.get_text(" ", strip=True))
-        if not text:
+def extract_paragraphs_from_node(node, title: str = "") -> list[str]:
+    # Mini limpiador inteligente local: quita publicidad, relacionados, botones, redes, newsletter, menús y texto repetido.
+    paragraphs = extract_clean_text_blocks(node, title=title)
+    return paragraphs[:60]
+
+
+def extract_tags(soup: BeautifulSoup) -> list[str]:
+    tags: list[str] = []
+    # Meta keywords tradicional
+    keywords = get_meta(soup, "keywords", "news_keywords")
+    if keywords:
+        for part in re.split(r"[,;|]", keywords):
+            value = clean_spaces(part)
+            if value:
+                tags.append(value)
+    # OpenGraph/article tags
+    for meta in soup.find_all("meta", property="article:tag"):
+        value = clean_spaces(meta.get("content", ""))
+        if value:
+            tags.append(value)
+    # Links o elementos visibles de tags, pero no se agregan al contenido de la nota
+    for a in soup.select("a[rel~='tag'], .tags a, .tagcloud a, .entry-tags a, .post-tags a"):
+        value = clean_spaces(a.get_text(" ", strip=True))
+        if value:
+            tags.append(value)
+    clean_tags: list[str] = []
+    seen: set[str] = set()
+    for tag in tags:
+        tag = clean_spaces(re.sub(r"^[#]+", "", tag))[:50]
+        key = tag.lower()
+        if not tag or len(tag) < 3 or key in seen:
             continue
-        low = text.lower()
-        if len(text) < 35 and tag.name == "p":
+        if any(bad in key for bad in ["publicidad", "whatsapp", "facebook", "twitter", "instagram", "newsletter"]):
             continue
-        if any(x in low for x in ["también lee", "te recomendamos", "síguenos", "whatsapp", "facebook", "x.com", "publicidad", "newsletter", "suscríbete"]):
-            continue
-        paragraphs.append(text)
-    seen = set()
-    unique = []
-    for p in paragraphs:
-        key = p.lower()
-        if key not in seen:
-            seen.add(key)
-            unique.append(p)
-    return unique[:50]
+        seen.add(key)
+        clean_tags.append(tag)
+    return clean_tags[:12]
 
 
 def fetch_full_article(url: str) -> dict:
@@ -129,9 +139,12 @@ def fetch_full_article(url: str) -> dict:
         title = clean_spaces(soup.title.get_text(" ", strip=True))
     description = get_meta(soup, "og:description", "description", "twitter:description")
     node = find_article_node(soup)
-    paragraphs = extract_paragraphs_from_node(node)
+    # Limpia basura antes de extraer contenido
+    strip_junk_nodes(node)
+    paragraphs = extract_paragraphs_from_node(node, title=title or "")
     image = extract_image(soup, url)
     published_dt = extract_date(soup)
+    tags = extract_tags(soup)
     return {
         "title": title or "",
         "description": description or "",
@@ -139,4 +152,5 @@ def fetch_full_article(url: str) -> dict:
         "text": "\n\n".join(paragraphs),
         "image": image,
         "published_dt": published_dt,
+        "tags": tags,
     }

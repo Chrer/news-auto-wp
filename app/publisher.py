@@ -50,10 +50,8 @@ def build_full_content(item: dict, paragraphs: list[str]) -> str:
     for p in paragraphs:
         if p.strip():
             blocks.append(f"<p>{escape(p.strip())}</p>")
-    if INCLUDE_SOURCE_LINK:
-        blocks.append("<hr />")
-        blocks.append(f"<p><strong>Fuente original:</strong> {escape(item.get('source_name', 'Fuente'))}</p>")
-        blocks.append(f'<p><a href="{escape(item["url"])}" target="_blank" rel="nofollow noopener">Ver publicación original</a></p>')
+    # No se agrega bloque visible de fuente original dentro del contenido.
+    # La URL original se conserva internamente en la base de datos para evitar duplicados.
     return "\n".join(blocks)
 
 
@@ -85,6 +83,9 @@ def prepare_item_content(item: dict, cfg: dict) -> tuple[str, str, str | None, d
             image_url = article["image"]
         if article.get("published_dt"):
             published_dt = article["published_dt"]
+        article_tags = article.get("tags") or []
+        if article_tags:
+            item["tags"] = list(dict.fromkeys((item.get("tags") or []) + article_tags))[:12]
         paragraphs = article.get("paragraphs") or []
         if len(paragraphs) < MIN_PARAGRAPHS_FULL_ARTICLE:
             raise RuntimeError(f"no se pudo extraer cuerpo completo suficiente: {len(paragraphs)} párrafos")
@@ -154,6 +155,7 @@ def run_once() -> dict:
                     status=status,
                     excerpt=item.get("summary", ""),
                     featured_media=media_id,
+                    tags=item.get("tags") or [],
                 )
                 mark_processed(item["url"], title, item.get("source_name", ""), post.get("id"), status)
                 published.append({

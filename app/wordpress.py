@@ -43,6 +43,42 @@ class WordPressClient:
         created = self._request("POST", "categories", json={"name": name, "slug": slug})
         return created.get("id")
 
+    def get_or_create_tag_ids(self, names: list[str] | None) -> list[int]:
+        ids: list[int] = []
+        if not names:
+            return ids
+        seen: set[str] = set()
+        for name in names[:12]:
+            name = (name or "").strip()[:50]
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            slug = slugify(name)[:60]
+            try:
+                found = self._request("GET", "tags", params={"slug": slug, "per_page": 1})
+                if found:
+                    ids.append(found[0]["id"])
+                    continue
+                found = self._request("GET", "tags", params={"search": name, "per_page": 5})
+                matched = None
+                for tag in found:
+                    if tag.get("name", "").strip().lower() == key:
+                        matched = tag.get("id")
+                        break
+                if matched:
+                    ids.append(matched)
+                    continue
+                created = self._request("POST", "tags", json={"name": name, "slug": slug})
+                if created.get("id"):
+                    ids.append(created["id"])
+            except Exception:
+                # Si no se pudo crear alguna etiqueta, no se detiene la publicación.
+                continue
+        return ids
+
     def upload_media(self, image_url: str, alt_text: str = "") -> int | None:
         """
         Descarga una imagen remota y la sube a WordPress.
@@ -137,8 +173,9 @@ class WordPressClient:
                 pass
         return media_id
 
-    def create_post(self, title: str, content: str, category_name: str, status: str = "publish", excerpt: str | None = None, featured_media: int | None = None):
+    def create_post(self, title: str, content: str, category_name: str, status: str = "publish", excerpt: str | None = None, featured_media: int | None = None, tags: list[str] | None = None):
         category_id = self.get_or_create_category_id(category_name)
+        tag_ids = self.get_or_create_tag_ids(tags)
         payload = {
             "title": title,
             "content": content,
@@ -147,6 +184,8 @@ class WordPressClient:
         }
         if category_id:
             payload["categories"] = [category_id]
+        if tag_ids:
+            payload["tags"] = tag_ids
         if excerpt:
             payload["excerpt"] = excerpt[:250]
         if featured_media:

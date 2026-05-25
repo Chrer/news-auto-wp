@@ -36,9 +36,10 @@ REQUIRE_IMAGE = env_bool("REQUIRE_IMAGE", True)
 MAX_ARTICLE_AGE_HOURS = env_int("MAX_ARTICLE_AGE_HOURS", 0)  # 0 = filtro de fecha desactivado
 SKIP_UNDATED_ARTICLES = env_bool("SKIP_UNDATED_ARTICLES", False)
 DATE_FILTER_ENABLED = env_bool("DATE_FILTER_ENABLED", False)
-INCLUDE_SOURCE_LINK = env_bool("INCLUDE_SOURCE_LINK", True)
+INCLUDE_SOURCE_LINK = env_bool("INCLUDE_SOURCE_LINK", False)  # En V7 no se agrega bloque visible de fuente original
 
 USER_AGENT = os.getenv("USER_AGENT", "NewsAutoBot/3.0 (+https://enriquevirgen.com)")
+SMART_CLEAN_CONTENT = env_bool("SMART_CLEAN_CONTENT", True)
 REQUEST_TIMEOUT = env_int("REQUEST_TIMEOUT", 25)
 
 

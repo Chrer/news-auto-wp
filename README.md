@@ -1,17 +1,17 @@
-# News Auto WordPress V6
+# News Auto WordPress V7
 
-Versión combinada: elimina El País, desactiva el filtro de fecha y conserva el arreglo para subida de imágenes 406.
+Sistema automático para fuentes propias/autorizadas.
 
-## Reglas incluidas
+## Cambios V7
 
-- No descarta por fecha.
-- No descarta por “sin fecha de publicación verificable”.
-- No incluye fuentes de El País.
-- Si no puede extraer o subir imagen, no publica esa noticia y busca otra.
-- Copia/parafrasea el artículo completo de las fuentes configuradas.
-- `/run-now` funciona con GET y POST.
+- Elimina basura del artículo antes de publicar: publicidad, menús, redes sociales, newsletter, relacionados, botones, comentarios y bloques repetidos.
+- Ya no agrega el bloque visible de “Fuente original” dentro de la nota.
+- Extrae etiquetas del feed o del HTML y las crea/asigna como **etiquetas de WordPress**.
+- Las etiquetas no se agregan como texto dentro de la publicación.
+- Mantiene imagen obligatoria y corrección de subida de imagen 406.
+- Sin filtro de fecha y sin fuentes de El País.
 
-## Variables recomendadas en Render
+## Variables recomendadas
 
 ```env
 WORDPRESS_URL=https://enriquevirgen.com
@@ -26,19 +26,14 @@ PARAPHRASE_ARTICLE=true
 UPLOAD_FEATURED_IMAGE=true
 REQUIRE_IMAGE=true
 DATE_FILTER_ENABLED=false
-MAX_ARTICLE_AGE_HOURS=0
 SKIP_UNDATED_ARTICLES=false
-INCLUDE_SOURCE_LINK=true
+INCLUDE_SOURCE_LINK=false
+SMART_CLEAN_CONTENT=true
 ```
 
-Build command:
+## Rutas
 
-```bash
-pip install -r requirements.txt
-```
-
-Start command:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
+- `/` estado del sistema
+- `/test-wordpress` prueba conexión con WordPress
+- `/run-now` ejecuta revisión manual
+- `/latest` últimas publicaciones procesadas

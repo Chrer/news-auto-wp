@@ -1,7 +1,7 @@
 site:
   default_category: "Nacional"
   default_status: "publish"
-  add_original_link: true
+  add_original_link: false
 
 sources:
   - name: "Línea Directa"

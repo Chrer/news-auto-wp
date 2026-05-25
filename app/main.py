@@ -7,7 +7,7 @@ from .wordpress import WordPressClient
 from .config import (
     RUN_ON_START, CHECK_INTERVAL_MINUTES, WORDPRESS_URL, WORDPRESS_STATUS,
     COPY_FULL_ARTICLE, PARAPHRASE_ARTICLE, UPLOAD_FEATURED_IMAGE, REQUIRE_IMAGE,
-    MAX_ARTICLE_AGE_HOURS, DATE_FILTER_ENABLED
+    MAX_ARTICLE_AGE_HOURS, DATE_FILTER_ENABLED, SMART_CLEAN_CONTENT, INCLUDE_SOURCE_LINK
 )
 
 app = FastAPI(title="News Auto WordPress Full", version="3.0.0")
@@ -33,6 +33,9 @@ def home():
         "upload_featured_image": UPLOAD_FEATURED_IMAGE,
         "require_image": REQUIRE_IMAGE,
         "date_filter_enabled": DATE_FILTER_ENABLED,
+        "smart_clean_content": SMART_CLEAN_CONTENT,
+        "include_source_link": INCLUDE_SOURCE_LINK,
+        "tags_to_wordpress": True,
         "message": "Automatizador de noticias activo",
     }
     return data

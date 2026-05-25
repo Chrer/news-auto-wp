@@ -67,6 +67,26 @@ def get_entry_image(entry) -> str | None:
     return None
 
 
+def get_entry_tags(entry) -> list[str]:
+    tags = []
+    for item in entry.get("tags", []) or []:
+        term = item.get("term") if isinstance(item, dict) else None
+        if term:
+            tags.append(html_to_text(term))
+    # Algunos feeds guardan categorías en category/categories
+    cat = entry.get("category")
+    if cat:
+        tags.append(html_to_text(cat))
+    clean = []
+    seen = set()
+    for tag in tags:
+        tag = re.sub(r"^[#]+", "", tag).strip()[:50]
+        key = tag.lower()
+        if tag and len(tag) >= 3 and key not in seen:
+            seen.add(key)
+            clean.append(tag)
+    return clean[:12]
+
 def parse_entry_datetime(entry) -> datetime | None:
     for key in ("published_parsed", "updated_parsed"):
         value = entry.get(key)
@@ -113,6 +133,7 @@ def read_feed(source: dict) -> list[dict]:
                 "default_category": source.get("category"),
                 "source_status": source.get("status"),
                 "source_full_article": bool(source.get("full_article", True)),
+                "tags": get_entry_tags(entry),
             }
         )
     return items
