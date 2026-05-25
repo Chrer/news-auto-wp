@@ -1,17 +1,17 @@
-# News Auto WordPress V3
+# News Auto WordPress V6
 
-Sistema automático para WordPress con extracción de artículo completo para fuentes autorizadas, paráfrasis básica sin API de IA, imagen destacada obligatoria y estados por fuente.
+Versión combinada: elimina El País, desactiva el filtro de fecha y conserva el arreglo para subida de imágenes 406.
 
 ## Reglas incluidas
 
-- Solo procesa noticias publicadas hace menos de 24 horas.
+- No descarta por fecha.
+- No descarta por “sin fecha de publicación verificable”.
+- No incluye fuentes de El País.
 - Si no puede extraer o subir imagen, no publica esa noticia y busca otra.
-- Publica inmediatamente cada noticia válida durante la revisión.
-- Las fuentes con `status: publish` se publican directo.
-- Las fuentes con `status: draft`, como El País, se guardan como borrador.
-- `/run-now` funciona con GET, POST y HEAD.
+- Copia/parafrasea el artículo completo de las fuentes configuradas.
+- `/run-now` funciona con GET y POST.
 
-## Variables en Render
+## Variables recomendadas en Render
 
 ```env
 WORDPRESS_URL=https://enriquevirgen.com
@@ -20,17 +20,16 @@ WORDPRESS_APP_PASSWORD=TU_APPLICATION_PASSWORD
 WORDPRESS_STATUS=publish
 RUN_ON_START=false
 CHECK_INTERVAL_MINUTES=5
-MAX_POSTS_PER_RUN=8
+MAX_POSTS_PER_RUN=1
 COPY_FULL_ARTICLE=true
 PARAPHRASE_ARTICLE=true
 UPLOAD_FEATURED_IMAGE=true
 REQUIRE_IMAGE=true
-MAX_ARTICLE_AGE_HOURS=24
-SKIP_UNDATED_ARTICLES=true
+DATE_FILTER_ENABLED=false
+MAX_ARTICLE_AGE_HOURS=0
+SKIP_UNDATED_ARTICLES=false
 INCLUDE_SOURCE_LINK=true
 ```
-
-## Render
 
 Build command:
 
@@ -43,14 +42,3 @@ Start command:
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
-
-## Rutas
-
-- `/` estado del sistema.
-- `/test-wordpress` prueba conexión con WordPress.
-- `/run-now` ejecuta revisión manual.
-- `/latest` últimas notas procesadas.
-
-
-## v5
-- Corrige subida de imágenes con fallback multipart para evitar errores 406 en WordPress/hosting compartido.

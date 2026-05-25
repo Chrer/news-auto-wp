@@ -15,5 +15,9 @@ services:
         value: 5
       - key: REQUIRE_IMAGE
         value: true
+      - key: DATE_FILTER_ENABLED
+        value: false
       - key: MAX_ARTICLE_AGE_HOURS
-        value: 24
+        value: 0
+      - key: SKIP_UNDATED_ARTICLES
+        value: false

@@ -4,7 +4,7 @@ from html import escape
 from .config import (
     MIN_SUMMARY_LENGTH, MAX_POSTS_PER_RUN, WORDPRESS_STATUS, load_yaml_config,
     COPY_FULL_ARTICLE, PARAPHRASE_ARTICLE, UPLOAD_FEATURED_IMAGE, INCLUDE_SOURCE_LINK,
-    REQUIRE_IMAGE, MAX_ARTICLE_AGE_HOURS, SKIP_UNDATED_ARTICLES, MIN_PARAGRAPHS_FULL_ARTICLE
+    REQUIRE_IMAGE, MAX_ARTICLE_AGE_HOURS, SKIP_UNDATED_ARTICLES, MIN_PARAGRAPHS_FULL_ARTICLE, DATE_FILTER_ENABLED
 )
 from .database import already_processed, mark_processed
 from .feeds import read_feed
@@ -28,6 +28,10 @@ def get_source_status(item: dict, cfg: dict) -> str:
 
 
 def article_is_recent(published_dt: datetime | None, max_hours: int = 24) -> tuple[bool, str]:
+    # Filtro de fecha desactivado por defecto en esta versión.
+    # Así no se descartan noticias por "sin fecha" ni por "noticia antigua".
+    if not DATE_FILTER_ENABLED:
+        return True, "filtro de fecha desactivado"
     if not published_dt:
         if SKIP_UNDATED_ARTICLES:
             return False, "sin fecha de publicación verificable"
@@ -36,7 +40,7 @@ def article_is_recent(published_dt: datetime | None, max_hours: int = 24) -> tup
     age_hours = (now - published_dt.astimezone(timezone.utc)).total_seconds() / 3600
     if age_hours < 0:
         return True, "fecha futura o reciente"
-    if age_hours > max_hours:
+    if max_hours and age_hours > max_hours:
         return False, f"noticia antigua: {age_hours:.1f} horas"
     return True, f"reciente: {age_hours:.1f} horas"
 
