@@ -1,52 +1,217 @@
 site:
-  default_category: "Nacional"
-  default_status: "publish"
+  default_category: Nacional
+  default_status: publish
   add_original_link: false
 
+# Categorías válidas de tu WordPress / panel.
+# extraction_category = de qué sección se extrae.
+# target_category = en qué categoría de WordPress se publica.
+available_categories:
+  - Ciencia y Tecnología
+  - Clima
+  - Deportes
+  - Economía
+  - Internacional
+  - Nacional
+  - Opinión
+  - Policiaca
+  - Política
+  - Sinaloa
+
+
+# Autor de WordPress por categoría destino.
+# Usa /api/wp-authors para ver los IDs reales de tus usuarios en WordPress.
+# Si una categoría no tiene autor o el ID es inválido, WordPress usará el usuario conectado por la API.
+category_authors:
+  "Política": 4
+  "Ciencia y Tecnología": 5
+  "Policiaca": 4
+  "Deportes": 3
+  "Economía": 7
+  "Nacional": 7
+  "Internacional": 6
+  "Sinaloa": 9
+  "Clima": 8
+  "Opinión": 2
+
 sources:
-  - name: "Línea Directa"
-    home_url: "https://lineadirectaportal.com"
+  # Puedes editar estas URLs desde el panel. Si el feed_url está vacío, el sistema intenta descubrir RSS.
+  - id: linea-directa-nacional
+    name: Línea Directa - Nacional
+    home_url: https://lineadirectaportal.com/nacional/
     feed_url: null
-    category: "Nacional"
-    status: "publish"
+    extraction_category: Nacional
+    target_category: Nacional
+    status: publish
     full_article: true
 
-  - name: "Ríodoce"
-    home_url: "https://riodoce.mx"
+  - id: linea-directa-policiaca
+    name: Línea Directa - Policiaca
+    home_url: https://lineadirectaportal.com/policiaca/
     feed_url: null
-    category: "Nacional"
-    status: "publish"
+    extraction_category: Policiaca
+    target_category: Policiaca
+    status: publish
     full_article: true
 
-  - name: "Debate"
-    home_url: "https://debate.com.mx"
+  - id: linea-directa-deportes
+    name: Línea Directa - Deportes
+    home_url: https://lineadirectaportal.com/deportes/
     feed_url: null
-    category: "Nacional"
-    status: "publish"
+    extraction_category: Deportes
+    target_category: Deportes
+    status: publish
     full_article: true
 
-  - name: "Luz Noticias"
-    home_url: "https://www.luznoticias.mx/"
+  - id: linea-directa-economia
+    name: Línea Directa - Economía
+    home_url: https://lineadirectaportal.com/economia/
     feed_url: null
-    category: "Nacional"
-    status: "publish"
+    extraction_category: Economía
+    target_category: Economía
+    status: publish
     full_article: true
 
-  - name: "Noticias de la Ciencia"
-    home_url: "https://noticiasdelaciencia.com"
+  - id: linea-directa-politica
+    name: Línea Directa - Política
+    home_url: https://lineadirectaportal.com/politica/
     feed_url: null
-    category: "Ciencia y Tecnología"
-    status: "publish"
+    extraction_category: Política
+    target_category: Política
+    status: publish
+    full_article: true
+
+  - id: linea-directa-clima
+    name: Línea Directa - Clima
+    home_url: https://lineadirectaportal.com/clima/
+    feed_url: null
+    extraction_category: Clima
+    target_category: Clima
+    status: publish
+    full_article: true
+
+  - id: linea-directa-sinaloa
+    name: Línea Directa - Sinaloa
+    home_url: https://lineadirectaportal.com/sinaloa/
+    feed_url: null
+    extraction_category: Sinaloa
+    target_category: Sinaloa
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-sinaloa
+    name: Luz Noticias - Sinaloa
+    home_url: https://www.luznoticias.mx/sinaloa/
+    feed_url: null
+    extraction_category: Sinaloa
+    target_category: Sinaloa
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-policiaca
+    name: Luz Noticias - Policiaca
+    home_url: https://www.luznoticias.mx/policiaca/
+    feed_url: null
+    extraction_category: Policiaca
+    target_category: Policiaca
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-deportes
+    name: Luz Noticias - Deportes
+    home_url: https://www.luznoticias.mx/deportes/
+    feed_url: null
+    extraction_category: Deportes
+    target_category: Deportes
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-economia
+    name: Luz Noticias - Economía
+    home_url: https://www.luznoticias.mx/economia/
+    feed_url: null
+    extraction_category: Economía
+    target_category: Economía
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-clima
+    name: Luz Noticias - Clima
+    home_url: https://www.luznoticias.mx/clima/
+    feed_url: null
+    extraction_category: Clima
+    target_category: Clima
+    status: publish
+    full_article: true
+
+  - id: luz-noticias-politica
+    name: Luz Noticias - Política
+    home_url: https://www.luznoticias.mx/politica/
+    feed_url: null
+    extraction_category: Política
+    target_category: Política
+    status: publish
+    full_article: true
+
+  - id: riodoce-sinaloa
+    name: Ríodoce - Sinaloa
+    home_url: https://riodoce.mx/
+    feed_url: null
+    extraction_category: Sinaloa
+    target_category: Sinaloa
+    status: publish
+    full_article: true
+
+  - id: debate-nacional
+    name: Debate - Nacional
+    home_url: https://debate.com.mx/
+    feed_url: null
+    extraction_category: Nacional
+    target_category: Nacional
+    status: publish
+    full_article: true
+
+  - id: noticias-ciencia
+    name: Noticias de la Ciencia - Ciencia y Tecnología
+    home_url: https://noticiasdelaciencia.com
+    feed_url: null
+    extraction_category: Ciencia y Tecnología
+    target_category: Ciencia y Tecnología
+    status: publish
     full_article: true
 
 category_rules:
-  - category: "Policiaca"
-    keywords: ["policiaca", "seguridad", "detenido", "asesinado", "homicidio", "balacera", "violencia", "accidente", "fiscalía", "policía", "cárcel"]
-  - category: "Economía"
-    keywords: ["economía", "infonavit", "dólar", "peso", "finanzas", "precio", "banco", "crédito", "empleo", "canasta básica"]
-  - category: "Ciencia y Tecnología"
-    keywords: ["tecnología", "ciencia", "investigación", "app", "internet", "redes sociales", "nasa", "inteligencia artificial", "celular", "software", "astronomía", "salud", "medicina"]
-  - category: "Internacional"
-    keywords: ["internacional", "estados unidos", "brasil", "argentina", "mundo", "europa", "china", "rusia", "trump", "biden", "francia", "ucrania", "israel", "gaza"]
-  - category: "Opinión"
-    keywords: ["opinión", "columna", "editorial"]
+  - category: Policiaca
+    keywords: [policiaca, seguridad, detenido, asesinado, homicidio, balacera, violencia, accidente, fiscalía, policía, cárcel, desaparecido, levantan]
+  - category: Economía
+    keywords: [economía, infonavit, dólar, peso, finanzas, precio, banco, crédito, empleo, canasta básica, casetas, peaje]
+  - category: Ciencia y Tecnología
+    keywords: [tecnología, ciencia, investigación, app, internet, redes sociales, nasa, inteligencia artificial, celular, software, astronomía, salud, medicina]
+  - category: Internacional
+    keywords: [internacional, estados unidos, brasil, argentina, mundo, europa, china, rusia, trump, biden, francia, ucrania, israel, gaza]
+  - category: Opinión
+    keywords: [opinión, columna, editorial]
+  - category: Deportes
+    keywords: [deportes, futbol, fútbol, beisbol, béisbol, mundialito, campeón, liga, torneo, partido]
+  - category: Clima
+    keywords: [clima, lluvia, lluvias, huracán, tormenta, temperatura, pronóstico, calor, frío]
+  - category: Política
+    keywords: [política, morena, sheinbaum, rocha, gobierno, gobernador, alcalde, congreso, partido, fgr]
+  - category: Sinaloa
+    keywords: [sinaloa, culiacán, mazatlán, mochis, ahome, guasave, navolato, el fuerte]
+  - category: Nacional
+    keywords: [nacional, méxico, gobierno federal, república]
+
+runtime_rules:
+  max_posts_per_run: 1
+  require_image: true
+  add_original_link: false
+  date_filter_enabled: false
+  smart_clean_content: true
+  tags_to_wordpress: true
+  paraphrase_article: true
+  paraphrase_mode: coherent
+  single_target_category_publish: true
+  lee_ahora_cleaner: true
+  infer_category_if_unclear: true
+  live_process_panel: true
